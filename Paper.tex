@@ -125,7 +125,7 @@ Ethereum, taken as a whole, can be viewed as a transaction-based state machine: 
 \linkdest{Upsilon_state_transition}\linkdest{Upsilon}\boldsymbol{\sigma}_{t+1} \equiv \Upsilon(\boldsymbol{\sigma}_{t}, T)
 \end{equation}
 
-where $\Upsilon$ is the Ethereum state transition function. In Ethereum, $\Upsilon$, together with $\boldsymbol{\sigma}$ are considerably more powerful then any existing comparable system; $\Upsilon$ allows components to carry out arbitrary computation, while $\boldsymbol{\sigma}$ allows components to store arbitrary state between transactions.
+where $\Upsilon$ is the Ethereum state transition function. In Ethereum, $\Upsilon$, together with $\boldsymbol{\sigma}$ are considerably more powerful than any existing comparable system; $\Upsilon$ allows components to carry out arbitrary computation, while $\boldsymbol{\sigma}$ allows components to store arbitrary state between transactions.
 
 Transactions are collated into blocks; blocks are chained together using a cryptographic hash as a means of reference. Blocks function as a journal, recording a series of transactions together with the previous block and an identifier for the final state (though do not store the final state itself---that would be far too big). They also punctuate the transaction series with incentives for nodes to \textit{mine}. This incentivisation takes place as a state-transition function, adding value to a nominated account.
 
@@ -344,8 +344,8 @@ The block in Ethereum is the collection of relevant pieces of information (known
 \item[gasUsed]\linkdest{block_gas_used_H__g}{}\linkdest{H__g} A scalar value equal to the total gas used in transactions in this block; formally $H_{\mathrm{g}}$.
 \item[timestamp]\linkdest{block_timestamp_word_def_H__s}{} A scalar value equal to the reasonable output of Unix's time() at this block's inception; formally \hyperlink{block_timestamp_H__s}{$H_{\mathrm{s}}$}.
 \item[extraData]\linkdest{block_extraData_H__x}{} An arbitrary byte array containing data relevant to this block. This must be 32 bytes or fewer; formally $H_{\mathrm{x}}$.
-\item[mixHash]\linkdest{mixHash_H__m}{} A 256-bit hash which, combined with the nonce, proves that a sufficient amount of computation has been carried out on this block; formally $H_{\mathrm{m}}$.
-\item[nonce]\linkdest{block_nonce_H__n}{}\linkdest{block_nonce} A 64-bit value which, combined with the mix-hash, proves that a sufficient amount of computation has been carried out on this block; formally $H_{\mathrm{n}}$.
+\item[mixHash]\linkdest{mixHash_H__m}{}\linkdest{H__m} A 256-bit hash which, combined with the nonce, proves that a sufficient amount of computation has been carried out on this block; formally $H_{\mathrm{m}}$.
+\item[nonce]\linkdest{block_nonce_H__n}{}\linkdest{block_nonce} A 64-bit value which, combined with the mix-hash, proves that a sufficient amount of computation has been carried out on this block; formally \hyperlink{H__n}{$H_{\mathrm{n}}$}.
 \end{description}
 \linkdest{ommer_block_headers_B__U}{}\linkdest{block_B}{}The other two components in the block are simply a list of ommer block headers (of the same format as above), $B_{\mathbf{U}}$ and a series of the transactions, $B_{\mathbf{T}}$. Formally, we can refer to a block $B$:
 \begin{equation}
@@ -521,7 +521,7 @@ H_{\mathrm{s}} > {P(H)_{H}}_{\mathrm{s}}
 
 This mechanism enforces a homeostasis in terms of the time between blocks; a smaller period between the last two blocks results in an increase in the difficulty level and thus additional computation required, lengthening the likely next period. Conversely, if the period is too large, the difficulty, and expected time to the next block, is reduced.
 
-The nonce, \hyperlink{block_nonce_H__n}{$H_{\mathrm{n}}$}, must satisfy the relations:
+The nonce, \linkdest{H__n}\hyperlink{block_nonce_H__n}{$H_{\mathrm{n}}$}, must satisfy the relations:
 \begin{equation}
 n \leqslant \frac{2^{256}}{H_{\mathrm{d}}} \quad \wedge \quad m = H_{\mathrm{m}}
 \end{equation}
@@ -643,12 +643,17 @@ and $T_{\mathrm{o}}$ is the original transactor, which can differ from the sende
 
 Note we use $\Theta_{4}$ and $\Lambda_{4}$ to denote the fact that only the first four components of the functions' values are taken; the final represents the message-call's output value (a byte array) and is unused in the context of transaction evaluation.
 
-After the message call or contract creation is processed, the state is finalised by determining the amount to be refunded, $g^*$ from the remaining gas, $g'$, plus some allowance from the refund counter, to the sender at the original rate.
+After the message call or contract creation is processed, the refund counter has to be incremented for the account that were self-destructed throughout its invocation.
 \begin{equation}
-g^* \equiv g' + \min \left\{ \Big\lfloor \dfrac{T_{\mathrm{g}} - g'}{2} \Big\rfloor, \hyperlink{refund_balance_defn_words_A__r}{A_{\mathrm{r}}} \right\}
+	A'_{r} \equiv A_{r} + \sum_{i \in A_{s}} R_{selfdestruct}
 \end{equation}
 
-The total refundable amount is the legitimately remaining gas $g'$, added to \hyperlink{refund_balance_defn_words_A__r}{$A_{\mathrm{r}}$}, with the latter component being capped up to a maximum of half (rounded down) of the total amount used $T_{\mathrm{g}} - g'$.
+Then the state is finalised by determining the amount to be refunded, $g^*$ from the remaining gas, $g'$, plus some allowance from the refund counter, to the sender at the original rate.
+\begin{equation}
+g^* \equiv g' + \min \left\{ \Big\lfloor \dfrac{T_{\mathrm{g}} - g'}{2} \Big\rfloor, \hyperlink{refund_balance_defn_words_A__r}{A'_{\mathrm{r}}} \right\}
+\end{equation}
+
+The total refundable amount is the legitimately remaining gas $g'$, added to \hyperlink{refund_balance_defn_words_A__r}{$A_{\mathrm{r}}$}, with the latter component being capped up to a maximum of half (rounded down) of the total amount used $T_{\mathrm{g}} - g'$. Therefore, $g^*$ is the total gas that remains after the transaction has been executed.
 
 The Ether for the gas is given to the miner, whose address is specified as the beneficiary of the present block $B$. So we define the pre-final state $\boldsymbol{\sigma}^*$ in terms of the provisional state $\boldsymbol{\sigma}_{P}$:
 \begin{eqnarray}
@@ -665,9 +670,9 @@ The final state, $\boldsymbol{\sigma}'$, is reached after deleting all accounts 
 \linkdest{touched_A__t}{}\forall i \in A_{\mathbf{t}}: \boldsymbol{\sigma}'[i] & = & \varnothing \quad\text{if}\quad \mathtt{\tiny DEAD}(\boldsymbol{\sigma}^*\kern -2pt, i)
 \end{eqnarray}
 
-\hypertarget{tx_total_gas_used_Upsilon_pow_g}{}\linkdest{Upsilon_pow_g}\hypertarget{tx_logs_Upsilon_pow_l}{}\linkdest{Upsilon_pow_l}\hypertarget{tx_status_Upsilon_pow_z}{}\linkdest{Upsilon_pow_z}And finally, we specify $\Upsilon^{\mathrm{g}}$, the total gas used in this transaction, $\Upsilon^\mathbf{l}$, the logs created by this transaction and $\Upsilon^{\mathrm{z}}$, the status code of this transaction:
+\hypertarget{tx_total_gas_used_Upsilon_pow_g}{}\linkdest{Upsilon_pow_g}\hypertarget{tx_logs_Upsilon_pow_l}{}\linkdest{Upsilon_pow_l}\hypertarget{tx_status_Upsilon_pow_z}{}\linkdest{Upsilon_pow_z}And finally, we specify $\Upsilon^{\mathrm{g}}$, the total gas used in this transaction $\Upsilon^\mathbf{l}$, the logs created by this transaction and $\Upsilon^{\mathrm{z}}$, the status code of this transaction:
 \begin{eqnarray}
-\Upsilon^{\mathrm{g}}(\boldsymbol{\sigma}, T) & \equiv & T_{\mathrm{g}} - g' \\
+\Upsilon^{\mathrm{g}}(\boldsymbol{\sigma}, T) & \equiv & T_{\mathrm{g}} - g^* \\
 \Upsilon^{\mathbf{l}}(\boldsymbol{\sigma}, T) & \equiv & \hyperlink{tx_log_series_wordy_defn_A__l}{A_{\mathbf{l}}} \\
 \Upsilon^{\mathrm{z}}(\boldsymbol{\sigma}, T) & \equiv & z
 \end{eqnarray}
@@ -676,7 +681,7 @@ These are used to help define the \hyperlink{Transaction_Receipt}{transaction re
 
 \section{Contract Creation}\label{ch:create}\hypertarget{endow}{}
 
-There are a number of intrinsic parameters used when creating an account: sender ($s$), original transactor ($o$), available gas ($g$), gas price ($p$), endowment ($v$) together with an arbitrary length byte array, $\mathbf{i}$, the initialisation EVM code and finally the present depth of the message-call/contract-creation stack ($e$).
+There are a number of intrinsic parameters used when creating an account: sender ($s$), original transactor ($o$), available gas ($g$), gas price ($p$), endowment ($v$) together with an arbitrary length byte array, $\mathbf{i}$, the initialisation EVM code, the present depth of the message-call/contract-creation stack ($e$) and finally the permission to make modifications to the state ($w$).
 
 We define the creation function formally as the function $\Lambda$, which evaluates from these values, together with the state $\boldsymbol{\sigma}$ to the tuple containing the new state, remaining gas, accrued transaction substate and an error message $(\boldsymbol{\sigma}', g', A, \mathbf{o})$, as in section \ref{ch:transactions}:
 \begin{equation}
@@ -1212,11 +1217,11 @@ Secondly, it should not be possible to make super-linear profits, and especially
 
 One plague of the Bitcoin world is ASICs. These are specialised pieces of compute hardware that exist only to do a single task (\cite{ASICSmithMJS}). In Bitcoin's case the task is the SHA256 hash function (\cite{Courtois2014}). While ASICs exist for a proof-of-work function, both goals are placed in jeopardy. Because of this, a proof-of-work function that is ASIC-resistant (i.e. difficult or economically inefficient to implement in specialised compute hardware) has been identified as the proverbial silver bullet.
 
-Two directions exist for ASIC resistance; firstly make it sequential memory-hard, i.e. engineer the function such that the determination of the nonce requires a lot of memory and bandwidth such that the memory cannot be used in parallel to discover multiple nonces simultaneously. The second is to make the type of computation it would need to do general-purpose; the meaning of ``specialised hardware''  for a general-purpose task set is, naturally, general purpose hardware and as such commodity desktop computers are likely to be pretty close to ``specialised hardware'' for the task. For Ethereum 1.0 we have chosen the first path.
+Two directions exist for ASIC resistance; firstly make it sequential memory-hard, i.e. engineer the function such that the determination of the \hyperlink{block_nonce}{nonce} requires a lot of memory and bandwidth such that the memory cannot be used in parallel to discover multiple nonces simultaneously. The second is to make the type of computation it would need to do general-purpose; the meaning of ``specialised hardware''  for a general-purpose task set is, naturally, general purpose hardware and as such commodity desktop computers are likely to be pretty close to ``specialised hardware'' for the task. For Ethereum 1.0 we have chosen the first path.
 
 More formally, the proof-of-work function takes the form of $\mathtt{PoW}$:
 \begin{equation}
-m = H_{\mathrm{m}} \quad \wedge \quad n \leqslant \frac{2^{256}}{H_{\mathrm{d}}} \quad \text{with} \quad (m, n) = \mathtt{PoW}(H_{\hcancel{n}}, H_{\mathrm{n}}, \mathbf{d})
+m = \hyperlink{H__m}{H_{\mathrm{m}}} \quad \wedge \quad n \leqslant \frac{2^{256}}{\hyperlink{H__d}{H_{\mathrm{d}}}} \quad \text{with} \quad (m, n) = \mathtt{PoW}(\hyperlink{H_cancel_n}{H_{\hcancel{n}}}, H_{\mathrm{n}}, \mathbf{d})
 \end{equation}
 
 Where $H_{\hcancel{n}}$ is the new block's header but \textit{without} the nonce and mix-hash components; $H_{\mathrm{n}}$ is the nonce of the header; $\mathbf{d}$ is a large data set needed to compute the mixHash and $H_{\mathrm{d}}$ is the new block's difficulty value (i.e. the block difficulty from section \ref{ch:ghost}). $\mathtt{PoW}$ is the proof-of-work function which evaluates to an array with the first item being the mixHash and the second item being a pseudo-random number cryptographically dependent on $H$ and $\mathbf{d}$. The underlying algorithm is called Ethash and is described below.
@@ -1470,7 +1475,7 @@ For each precompiled contract, we make use of a template function, $\Xi_{\mathtt
 
 The precompiled contracts each use these definitions and provide specifications for the $\mathbf{o}$ (the output data) and $g_{\mathrm{r}}$, the gas requirements.
 
-We define $\Xi_{\mathtt{ERCEC}}$ as a precompiled contract for the elliptic curve digital signature algorithm (ECDSA) public key recovery function (ecrecover). See Appendix \ref{app:signing} for the definition of the function $\mathtt{\tiny ECDSARECOVER}$. We also define $\mathbf{d}$ to be the input data, well-defined for an infinite length by appending zeroes as required. In the case of an invalid signature ($\mathtt{\tiny ECDSARECOVER}(h, v, r, s) = \varnothing$), we return no output.
+We define $\Xi_{\mathtt{ECREC}}$ as a precompiled contract for the elliptic curve digital signature algorithm (ECDSA) public key recovery function (ecrecover). See Appendix \ref{app:signing} for the definition of the function $\mathtt{\tiny ECDSARECOVER}$. We also define $\mathbf{d}$ to be the input data, well-defined for an infinite length by appending zeroes as required. In the case of an invalid signature ($\mathtt{\tiny ECDSARECOVER}(h, v, r, s) = \varnothing$), we return no output.
 
 \begin{eqnarray}
 \Xi_{\mathtt{ECREC}} &\equiv& \Xi_{\mathtt{PRE}} \quad \text{where:} \\
@@ -1568,7 +1573,7 @@ We define a binary operation $+$ on $C_1$ for distinct elements $(X_1, Y_1), (X_
 
 In the case where $(X_1, Y_1) = (X_2, Y_2)$, we define $+$ on $C_1$ with
 \begin{eqnarray}\label{eq:ec-doubling}
-(X_1, Y_1) + (X_1, Y_1)&\equiv&\begin{cases}
+(X_1, Y_1) + (X_2, Y_2)&\equiv&\begin{cases}
 (X,Y)&\text{if}\ Y_1\neq 0\\
 (0,0)&\text{otherwise}
 \end{cases}\\
@@ -1585,7 +1590,7 @@ for a natural number $n$ and a point $P$ in $C_1$.
 
 We define $P_1$ to be a point $(1,2)$ on $C_1$. Let $G_1$ be the subgroup of $(C_1,+)$ generated by $P_1$. $G_1$ is known to be a cyclic group of order $q$. For a point $P$ in $G_1$, we define $\log_{P_1}(P)$ to be the smallest natural number $n$ satisfying $n\cdot P_1=P$. $\log_{P_1}(P)$ is at most $q-1$.
 
-Let $F_{p^2}$ be a field $F_{\mathrm{p}}[i]/(i^2+1)$. We define a set $C_2$ with
+Let $F_{p^2}$ be a field $F_{p}[i]/(i^2+1)$. We define a set $C_2$ with
 \begin{equation}
 C_2\equiv\{(X,Y)\in F_{p^2}\times F_{p^2}\mid Y^2=X^3+3(i+9)^{-1}\}\cup\{(0,0)\}
 \end{equation}
@@ -1595,6 +1600,14 @@ P_2&\equiv&
 (11559732032986387107991004021392285783925812861821192530917403151452391805634 \times i\\\nonumber &&+ 10857046999023057135944570762232829481370756359578518086990519993285655852781,\\\nonumber && 4082367875863433681332203403145435568316851327593401208105741076214120093531 \times i\\\nonumber &&+ 8495653923123431417604973247489272438418190587263600148770280649306958101930)
 \end{eqnarray}
 We define $G_2$ to be the subgroup of $(C_2,+)$ generated by $P_2$. $G_2$ is known to be the only cyclic group of order $q$ on $C_2$. For a point $P$ in $G_2$, we define $\log_{P_2}(P)$ be the smallest natural number $n$ satisfying $n\cdot P_2=P$. With this definition, $\log_{P_2}(P)$ is at most $q-1$.
+
+Let $G_T$ be the multiplicative abelian group underlying $F_{q^{12}}$. It is known that a non-degenerate bilinear map $e : G_1\times G_2 \to G_T$ exists. This bilinear map is a type three pairing. There are several such bilinear maps, it does not matter which is chosen to be $e$.
+Let $P_T = e(P_1, P_2)$, $a$ be a set of $k$ points in $G_1$, and $b$ be a set of $k$ points in $G_2$. It follows from the definition of a pairing that the following are equivalent
+\begin{eqnarray} \label{eq:pairing-check}
+\log_{P_1}(a_1)\times\log_{P_2}(b_1)+\cdots+\log_{P_1}(a_{k})\times\log_{P_2}(b_{k})&\equiv& 1\mod q\\
+\prod_{i=0}^{k}e\left(a_i, b_i\right) &=& P_T
+\end{eqnarray}
+Thus the pairing operation provides a method to verify (\ref{eq:pairing-check}).
 
 A 32 byte number $\mathbf{x}\in\mathbf{P}_{256}$ might and might not represent an element of $F_{\mathrm{p}}$.
 \begin{equation}
@@ -1634,7 +1647,8 @@ x_1&\equiv&\delta_{\mathrm{p}}(\mathbf{x}[64..95])\\
 y_1&\equiv&\delta_{\mathrm{p}}(\mathbf{x}[96..127])
 \end{eqnarray}
 
-We define $\Xi_{\mathtt{SNARKV}}$ as a precompiled contract for zkSNARK verification.
+We define $\Xi_{\mathtt{SNARKV}}$ as a precompiled contract which checks if (\ref{eq:pairing-check}) holds, for intended use in zkSNARK verification.
+
 \begin{eqnarray}
 \Xi_{\mathtt{SNARKV}}&\equiv&\Xi_{\mathtt{PRE}}\quad\text{except:}\\
 \qquad\Xi_{\mathtt{SNARKV}}(\boldsymbol\sigma,g,I)&=&\left(\varnothing,0,A^0,()\right)\quad\text{if}\ F\\
@@ -1645,12 +1659,12 @@ g_{\mathrm{r}}&=& 60000k + 40000 \\
 0x0000000000000000000000000000000000000000000000000000000000000001&\text{if}\ v\wedge\neg F\\
 0x0000000000000000000000000000000000000000000000000000000000000000&\text{if}\ \neg v\wedge\neg F
 \end{cases}\\
-v&\equiv&(\log_{P_1}(a_1)\times\log_{P_2}(b_1)+\cdots+\log_{P_1}(a_{\mathrm{k}})\times\log_{P_2}(b_{\mathrm{k}})\equiv 1\mod q)\\
+v&\equiv&(\log_{P_1}(a_1)\times\log_{P_2}(b_1)+\cdots+\log_{P_1}(a_k)\times\log_{P_2}(b_k)\equiv 1\mod q)\\
 a_1&\equiv&\delta_1(I_{\mathbf{d}}[0..63])\\
 b_1&\equiv&\delta_2(I_{\mathbf{d}}[64..191])\\\nonumber
 \vdots\\
-a_{\mathrm{k}}&\equiv&\delta_1(I_{\mathbf{d}}[(|I_{\mathbf{d}}|-192)..(|I_{\mathbf{d}}|-129)])\\
-b_{\mathrm{k}}&\equiv&\delta_2(I_{\mathbf{d}}[(|I_{\mathbf{d}}|-128)..(|I_{\mathbf{d}}|-1)])
+a_k&\equiv&\delta_1(I_{\mathbf{d}}[(|I_{\mathbf{d}}|-192)..(|I_{\mathbf{d}}|-129)])\\
+b_k&\equiv&\delta_2(I_{\mathbf{d}}[(|I_{\mathbf{d}}|-128)..(|I_{\mathbf{d}}|-1)])
 \end{eqnarray}
 
 We define a precompiled contract for addition on $G_1$.
@@ -1691,7 +1705,7 @@ We assume the existence of functions $\mathtt{\small ECDSAPUBKEY}$, $\mathtt{\sm
 \mathtt{\small ECDSARECOVER}(e \in \mathbb{B}_{32}, v \in \mathbb{B}_{1}, r \in \mathbb{B}_{32}, s \in \mathbb{B}_{32}) & \equiv & p_{\mathrm{u}} \in \mathbb{B}_{64}
 \end{eqnarray}
 
-Where $p_{\mathrm{u}}$ is the public key, assumed to be a byte array of size 64 (formed from the concatenation of two positive integers each $< 2^{256}$), $p_{\mathrm{r}}$ is the private key, a byte array of size 32 (or a single positive integer in the aforementioned range) and $e$ is the hash of the transaction, \hyperlink{h_of_T}{$h(T)$}. It is assumed that \hypertarget{v}{}$v$ is either the `recovery identifier' or `chain identifier doubled plus 35 or 36'. The recovery identifier is a 1 byte value specifying the parity and finiteness of the coordinates of the curve point for which $r$ is the x-value; this value is in the range of $[27, 30]$, however we declare the upper two possibilities, representing infinite values, invalid. The value 27 represents an even $y$ value and 28 represents an odd $y$ value.
+Where $p_{\mathrm{u}}$ is the public key, assumed to be a byte array of size 64 (formed from the concatenation of two positive integers each $< 2^{256}$), $p_{\mathrm{r}}$ is the private key, a byte array of size 32 (or a single positive integer in the aforementioned range) and $e$ is the hash of the transaction, \hyperlink{h_of_T}{$h(T)$}. It is assumed that \hypertarget{v}{}$v$ is either the `recovery identifier' or `chain identifier doubled plus 35 or 36'. The recovery identifier is a 1 byte value specifying the parity and finiteness of the coordinates of the curve point for which $r$ is the x-value; this value is in the range of $[27, 30]$, however we declare the upper two possibilities, representing infinite values, invalid. The value 27 represents an even $y$ value and 28 represents an odd $y$ value. In the second case, where \hypertarget{v}{}$v$ is the chain identifier doubled plus 35 or 36, the values 35 and 36 assume the role of the `recovery identifier' by specifying the parity of $y$, with the value 35 representing an even value and 36 representing an odd value.
 
 \newcommand{\slimit}{\ensuremath{\text{s-limit}}}
 
@@ -1699,7 +1713,7 @@ Where $p_{\mathrm{u}}$ is the public key, assumed to be a byte array of size 64 
 \begin{align}
 0 < \linkdest{r}{r} &< \mathtt{\tiny secp256k1n} \\
 0 < \linkdest{s}{s} &< \mathtt{\tiny secp256k1n} \div 2 + 1 \\
-\hyperlink{v}{v} &\in \{27,28,\mathtt{\tiny chain\_{\mathrm{id}}} \times 2 + 35, \mathtt{\tiny chain\_{\mathrm{id}}} \times 2 + 36\}
+\hyperlink{v}{v} &\in \{27,28,\mathtt{\tiny chain\_id} \times 2 + 35, \mathtt{\tiny chain\_id} \times 2 + 36\}
 \end{align}
 where:
 \begin{align}
@@ -1716,7 +1730,7 @@ A(p_{\mathrm{r}}) = \mathcal{B}_{96..255}\big(\mathtt{\tiny KEC}\big( \mathtt{\s
 \begin{eqnarray}
 L_{S}(T) & \equiv & \begin{cases}
 (T_{\mathrm{n}}, T_{\mathrm{p}}, T_{\mathrm{g}}, T_{\mathrm{t}}, T_{\mathrm{v}}, \mathbf{p}) & \text{if} \; v \in \{27, 28\} \\
-(T_{\mathrm{n}}, T_{\mathrm{p}}, T_{\mathrm{g}}, T_{\mathrm{t}}, T_{\mathrm{v}}, \mathbf{p}, \mathtt{\tiny chain\_{\mathrm{id}}}, (), ()) & \text{otherwise} \\
+(T_{\mathrm{n}}, T_{\mathrm{p}}, T_{\mathrm{g}}, T_{\mathrm{t}}, T_{\mathrm{v}}, \mathbf{p}, \mathtt{\tiny chain\_id}, (), ()) & \text{otherwise} \\
 \end{cases} \\
 \nonumber \text{where} \\
 \nonumber \mathbf{p} & \equiv & \begin{cases}
@@ -1761,7 +1775,6 @@ The fee schedule $G$ is a tuple of 31 scalar values corresponding to the relativ
 \toprule
 Name & Value & Description* \\
 \midrule
-\everyrow{\tabucline[on 2pt]-}
 $G_{zero}$ & 0 & Nothing paid for operations of the set {\small $W_{zero}$}. \\
 $G_{base}$ & 2 & Amount of gas to pay for operations of the set {\small $W_{base}$}. \\
 $G_{verylow}$ & 3 & Amount of gas to pay for operations of the set {\small $W_{verylow}$}. \\
@@ -1798,7 +1811,7 @@ $G_{\mathrm{logtopic}}$ & 375 & Paid for each topic of a {\small LOG} operation.
 $G_{sha3}$ & 30 & Paid for each {\small SHA3} operation. \\
 $G_{sha3word}$ & 6 & Paid for each word (rounded up) for input data to a {\small SHA3} operation. \\
 $G_{copy}$ & 3 & Partial payment for {\small *COPY} operations, multiplied by words copied, rounded up. \\
-$G_{blockhash}$ & 20 & Payment for {\small BLOCKHASH} operation. \\ \everyrow{}
+$G_{blockhash}$ & 20 & Payment for {\small BLOCKHASH} operation. \\
 $G_{quaddivisor}$ & 100 & The quadratic coefficient of the input sizes of the exponentiation-over-modulo precompiled\\
 &&contract. \\ 
 
@@ -2361,13 +2374,9 @@ G_{newaccount} & \text{if} \quad \mathtt{\tiny DEAD}(\boldsymbol{\sigma}, \bolds
 \varnothing &\text{if}\ \boldsymbol{\sigma}[r] = \varnothing\ \wedge\ \boldsymbol{\sigma}[I_{\mathrm{a}}]_{\mathrm{b}} = 0\\
 (\boldsymbol{\sigma}[r]_{\mathrm{n}}, \boldsymbol{\sigma}[r]_{\mathrm{b}} + \boldsymbol{\sigma}[I_{\mathrm{a}}]_{\mathrm{b}}, \boldsymbol{\sigma}[r]_{\mathbf{s}}, \boldsymbol{\sigma}[r]_{\mathrm{c}}) & \text{if}\ r \neq I_{\mathrm{a}} \\
 (\boldsymbol{\sigma}[r]_{\mathrm{n}}, 0, \boldsymbol{\sigma}[r]_{\mathbf{s}}, \boldsymbol{\sigma}[r]_{\mathrm{c}}) & \text{otherwise}
-\end{cases}$\\
-&&&& where $r = \boldsymbol{\mu}_{\mathbf{s}}[0] \bmod 2^{160}$\\
+\end{cases}$\\ \\
+&&&& where $r = \boldsymbol{\mu}_{\mathbf{s}}[0] \bmod 2^{160}$\\ \\
 &&&& $\boldsymbol{\sigma}'[I_{\mathrm{a}}]_{\mathrm{b}} = 0$ \\
-&&&& $A'_{r} \equiv A_{r} + \begin{cases}
-R_{selfdestruct} & \text{if} \quad I_{\mathrm{a}} \notin A_{\mathbf{s}} \\
-0 & \text{otherwise}
-\end{cases}$ \\
 &&&&\linkdest{C tiny SELFDESTRUCT}{} $C_{\text{\tiny SELFDESTRUCT}}(\boldsymbol{\sigma}, \boldsymbol{\mu}) \equiv G_{selfdestruct} + \begin{cases}
 G_{newaccount} & \text{if} \quad n \\
 0 & \text{otherwise}
@@ -2438,7 +2447,7 @@ The seed hash is different for every epoch. For the first epoch it is the Keccak
 \end{equation}
 \begin{equation}
  C_{seedhash}(H_{\mathrm{i}}) = \begin{cases}
-\texttt{KEC}(\mathbf{0}_{32}) & \text{if} \quad E_{epoch}(H_{\mathrm{i}}) = 0 \quad  \\
+\mathbf{0}_{32} & \text{if} \quad E_{epoch}(H_{\mathrm{i}}) = 0 \quad  \\
 \texttt{KEC}(C_{seedhash}(H_{\mathrm{i}} - J_{epoch})) & \text{otherwise}
 \end{cases}
 \end{equation}
